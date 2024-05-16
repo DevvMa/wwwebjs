@@ -2,38 +2,34 @@ const express = require('express');
 const { Client } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 
-// Create a new express app
 const app = express();
-
-// Serve static files from the public directory
 app.use(express.static('public'));
 
-// Create a new client instance
 const client = new Client();
 
-// When the client is ready, run this code (only once)
 client.once('ready', () => {
     console.log('Client is ready!');
 });
 
-// When the client received QR-Code
-app.get('/qr', (req, res) => {
-    // When the client received QR-Code
-    client.on('qr', (qr) => {
-        // Generate the QR code as a data URI
-        qrcode.toDataURL(qr, { small: true }, (err, url) => {
-            if (err) {
-                console.error(err);
-                res.status(500).send('Error generating QR code');
-                return;
-            }
-            // Send the QR code data URI as a response to the client
-            res.send(`<img src="${url}">`);
-        });
+let qrUrl = ''; // This will store the QR code data URI
+client.on('qr', (qr) => {
+    qrcode.toDataURL(qr, { small: true }, (err, url) => {
+        if (err) {
+            console.error('Error generating QR code', err);
+            return;
+        }
+        qrUrl = url; // Save the QR code data URI
     });
 });
 
-// Start your client
+app.get('/qr', (req, res) => {
+    if (qrUrl) {
+        res.send(`<img src="${qrUrl}">`);
+    } else {
+        res.status(503).send('QR Code not available yet');
+    }
+});
+
 client.initialize();
 
 class Broadcast {
@@ -43,33 +39,30 @@ class Broadcast {
     }
 
     sendMessageInterval() {
-        setTimeout(() => {
-            if (this.index < this.messages.length) {
-                this.sendMessageInterval();
-                client.sendMessage('6285731487284@c.us', this.messages[this.index]);
-                client.sendMessage('6591097721@c.us', this.messages[this.index]);
-            }
+        if (this.index < this.messages.length) {
+            client.sendMessage('6285731487284@c.us', this.messages[this.index]);
+            client.sendMessage('6591097721@c.us', this.messages[this.index]);
             this.index++;
-        }, 5000); // 30 seconds delay
+            setTimeout(() => {
+                this.sendMessageInterval();
+            }, 5000);
+        }
     }
 }
-  
+
 const messages = [
     "The quick brown fox jumps over the lazy dog.",
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     "The sky is blue and the sun is shining."
 ];
 
-// Listening to all incoming messages
 client.on('message_create', message => {
     if (message.body === '#broadcastNow') {
-        const logger = new Broadcast(messages);
-        logger.sendMessageInterval();
+        const broadcaster = new Broadcast(messages);
+        broadcaster.sendMessageInterval();
     }
 });
 
-
-// Start the express server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
