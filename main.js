@@ -5,7 +5,11 @@ const qrcode = require('qrcode');
 const app = express();
 app.use(express.static('public'));
 
-const client = new Client();
+const client = new Client({
+    puppeteer: {
+    args: ["--no-sandbox"],
+    headless: true
+}});
 
 client.once('ready', () => {
     console.log('Client is ready!');
