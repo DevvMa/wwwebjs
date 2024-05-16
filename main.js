@@ -1,15 +1,20 @@
 const express = require('express');
-const { Client } = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
+require('dotenv').config();
 
 const app = express();
 app.use(express.static('public'));
 
 const client = new Client({
     puppeteer: {
-    args: ["--no-sandbox"],
-    headless: true
-}});
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        headless: true
+    },
+    authStrategy: new LocalAuth({
+        dataPath: ".wwebjs_auth"
+    })
+});
 
 client.once('ready', () => {
     console.log('Client is ready!');
@@ -67,7 +72,9 @@ client.on('message_create', message => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const HOST = process.env.HOST;
+const PORT = process.env.PORT;
+
+app.listen(PORT, HOST, () => {
     console.log(`Server running on port ${PORT}`);
 });

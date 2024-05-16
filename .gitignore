@@ -54,3 +54,6 @@ build/Release
 
 # Mac specific directories
 .DS_Store
+
+.wwebjs_auth
+.wwebjs_cache
