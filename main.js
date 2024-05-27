@@ -124,13 +124,13 @@ app.post('/send-message', async (req, res) => {
         const startTime = Date.now();
 
         // Check If destination number registered as whatsapp
-        const contact = await client.isRegisteredUser(number + '@c.us');
-        if (!contact) {
-            return res.status(400).send('The number is not registered on WhatsApp.');
-        }
+        // const contact = await client.isRegisteredUser(number + '@c.us');
+        // if (!contact) {
+        //     return res.status(400).send('The number is not registered on WhatsApp.');
+        // }
 
-        const checkRegisteredTime = Date.now();
-        console.log(`Number registration check took ${checkRegisteredTime - startTime} ms. Sending message...`);
+        // const checkRegisteredTime = Date.now();
+        // console.log(`Number registration check took ${checkRegisteredTime - startTime} ms. Sending message...`);
 
 
         const response = await client.sendMessage(number + '@c.us', message);
