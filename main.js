@@ -45,11 +45,16 @@ app.post('/start-session', (req, res) => {
         delete qrCodes[sessionId]; // Remove QR code once client is authenticated
     });
 
-    client.on('message_create', message => {
-        if (message.body === '#broadcastNow') {
-            const broadcaster = new Broadcast(messages, sessionId);
-            broadcaster.sendMessageInterval();
-        }
+    client.on('authenticated', () => {
+        console.log(`Client ${sessionId} authenticated successfully!`);
+    });
+
+    client.on('auth_failure', () => {
+        console.log(`Client ${sessionId} authentication failed!`);
+    });
+
+    client.on('disconnected', (reason) => {
+        console.log(`Client ${sessionId} disconnected due to: ${reason}`);
     });
 
     client.initialize();
@@ -107,12 +112,32 @@ app.post('/send-message', async (req, res) => {
 
         const client = clients[sessionId];
 
+        console.log(`Client ${sessionId} info: ${JSON.stringify(client.info, null, 2)}`);
+
+        if (client.info && client.info.wid) {
+            console.log(`Client ${sessionId} is connected with WhatsApp ID: ${client.info.wid.user}`);
+        } else {
+            return res.status(400).send('WhatsApp client is not connected.');
+        }
+
+        console.log(`Client ${sessionId} is ready. Checking if number is registered...`);
+        const startTime = Date.now();
+
+        // Check If destination number registered as whatsapp
         const contact = await client.isRegisteredUser(number + '@c.us');
         if (!contact) {
             return res.status(400).send('The number is not registered on WhatsApp.');
         }
 
+        const checkRegisteredTime = Date.now();
+        console.log(`Number registration check took ${checkRegisteredTime - startTime} ms. Sending message...`);
+
+
         const response = await client.sendMessage(number + '@c.us', message);
+
+        const messageSendTime = Date.now();
+        console.log(`Message sending took ${messageSendTime - checkRegisteredTime} ms.`);
+
         res.status(200).json(response);
     } catch (err) {
         console.error(err);
